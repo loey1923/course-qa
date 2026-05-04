@@ -1,0 +1,37 @@
+# ============================================================
+# Course QA - Configuration
+# ============================================================
+
+course:
+  name: "机器学习"
+  description: "机器学习课程教材问答助手"
+
+# PDF ingestion
+ingestion:
+  pdf_path: "data/textbook.pdf"
+  chunk_size: 500
+  chunk_overlap: 50
+
+# Embedding model (BGE-M3 local)
+embedding:
+  model_path: "E:/models/BGE-M3"
+  device: "cuda"
+  batch_size: 32
+
+# Vector store
+vectorstore:
+  persist_dir: "chroma_db"
+  collection_name: "course_textbook"
+
+# LLM (DeepSeek API)
+llm:
+  base_url: "https://api.deepseek.com"
+  model: "deepseek-chat"
+  temperature: 0.3
+  max_tokens: 2048
+
+# Retrieval
+retrieval:
+  top_k: 5
+  use_mmr: true
+  mmr_lambda: 0.5

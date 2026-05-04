@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Environment
+.env
+.conda/
+*.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Data (large files)
+data/*.pdf
+data/*.txt
+
+# ChromaDB
+chroma_db/
+
+# Models
+models/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
