@@ -31,7 +31,8 @@ pip install -r requirements.txt
 - **HF cache**: All HuggingFace models cached at `E:/huggingface` (HF_HOME). BGE-M3 model at `E:/models/BGE-M3`.
 - **Chapter detection**: Regex-based (`ingest.py:CHAPTER_PATTERNS`), supports Chinese (`第X章`) and English (`Chapter X`, `X.X`). Line-by-line scan, no `break` after first heading found.
 - **Config**: All settings in `config.yaml` — chunk size, model paths, LLM params, retrieval params. `load_config()` is the single entry point.
-- **LLM**: DeepSeek API via OpenAI-compatible client (`base_url: https://api.deepseek.com`).
+- **LLM**: DeepSeek API via OpenAI-compatible client (`base_url: https://api.deepseek.com`). Model: `deepseek-v4-flash`.
+- **API Key**: `config.yaml` 中的 `api_key` 字段仅用于本地开发，commit 前必须清空。
 
 ## Development Workflow
 

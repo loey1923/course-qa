@@ -26,9 +26,10 @@ vectorstore:
 # LLM (DeepSeek API)
 llm:
   base_url: "https://api.deepseek.com"
-  model: "deepseek-chat"
+  model: "deepseek-v4-flash"
   temperature: 0.3
   max_tokens: 2048
+  api_key: ""
 
 # Retrieval
 retrieval:
