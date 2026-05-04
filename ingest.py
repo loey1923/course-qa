@@ -158,9 +158,10 @@ def store_in_chromadb(chunks, embeddings, config):
     return collection
 
 
-def main():
+def main(pdf_path=None):
     config = load_config()
-    pdf_path = config["ingestion"]["pdf_path"]
+    if pdf_path is None:
+        pdf_path = config["ingestion"]["pdf_path"]
 
     if not Path(pdf_path).exists():
         print(f"Error: PDF not found at {pdf_path}")

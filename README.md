@@ -48,17 +48,16 @@ huggingface-cli download BAAI/bge-m3 --local-dir E:/models/BGE-M3
 ```bash
 conda activate course-qa
 
-# 1. 将教材 PDF 放入 data/ 目录，重命名为 textbook.pdf
-cp your_textbook.pdf data/textbook.pdf
+# 1. 将教材 PDF 放入 data/ 目录
+cp your_textbook.pdf data/
 
-# 2. 执行 PDF 解析和向量化（首次运行约 1-3 分钟）
-python ingest.py
-
-# 3. 启动问答界面
-streamlit run app.py
+# 2. 一键启动（自动检测 PDF、解析、打开网页端）
+python start.py
 ```
 
-浏览器打开 `http://localhost:8501`，输入问题即可开始问答。
+浏览器自动打开 `http://localhost:8501`，输入问题即可开始问答。
+
+更换教材时，只需将新 PDF 放入 `data/`，重新运行 `python start.py` 会自动检测变更并重新解析。
 
 ## 配置说明
 
@@ -83,10 +82,11 @@ PDF教材 → 解析 → 分块 → BGE-M3向量化 → ChromaDB
 
 ```
 course-qa/
+├── start.py             # 一键启动入口（自动检测 PDF → 解析 → 启动网页端）
 ├── config.yaml          # 全局配置
 ├── ingest.py            # PDF 解析 → 分块 → 向量化 → ChromaDB
 ├── rag.py               # 检索 + DeepSeek 生成
-├── app.py               # Streamlit 前端（Phase 5）
+├── app.py               # Streamlit 前端
 ├── requirements.txt     # Python 依赖
 ├── data/                # 教材 PDF 存放目录
 ├── chroma_db/           # ChromaDB 持久化存储（自动生成）
@@ -127,6 +127,10 @@ course-qa/
 ### Phase 5: 前端 + 收尾
 
 Streamlit 对话式界面：`st.chat_message` 原生对话组件、`st.expander` 折叠式引用来源卡片、侧边栏显示系统状态（课程名、chunk 数量、模型信息）、前置检查（API Key 和 ChromaDB 数据验证）。支持多轮问答，对话历史通过 `session_state` 保持。
+
+### Phase 6: 一键启动 + 自动化
+
+`start.py` 单入口脚本：自动扫描 `data/` 目录检测 PDF 文件，通过 marker 文件（`chroma_db/.ingested`）判断是否需要重新解析，增量处理后自动启动 Streamlit。更换教材只需替换 PDF 文件重新运行。
 
 ## 许可证
 
