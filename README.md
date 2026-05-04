@@ -126,7 +126,7 @@ course-qa/
 
 ### Phase 5: 前端 + 收尾
 
-Streamlit 对话式界面，支持多轮问答、引用来源展示。（进行中）
+Streamlit 对话式界面：`st.chat_message` 原生对话组件、`st.expander` 折叠式引用来源卡片、侧边栏显示系统状态（课程名、chunk 数量、模型信息）、前置检查（API Key 和 ChromaDB 数据验证）。支持多轮问答，对话历史通过 `session_state` 保持。
 
 ## 许可证
 
