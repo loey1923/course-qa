@@ -8,11 +8,12 @@ course:
 
 # PDF ingestion
 ingestion:
-  pdf_path: "data/textbook.pdf"
+  pdf_path: "data/textbook.pdf"   # start.py 会自动检测，此字段仅 ingest.py 手动运行时使用
   chunk_size: 500
   chunk_overlap: 50
 
 # Embedding model (BGE-M3 local)
+# model_path: BGE-M3 模型的本地路径，根据你的实际存放位置修改
 embedding:
   model_path: "E:/models/BGE-M3"
   device: "cuda"
@@ -23,7 +24,9 @@ vectorstore:
   persist_dir: "chroma_db"
   collection_name: "course_textbook"
 
-# LLM (DeepSeek API)
+# LLM (OpenAI 兼容接口)
+# 支持 DeepSeek / OpenAI / Ollama 等任何 OpenAI 兼容服务
+# 只需修改 base_url、model、api_key 即可切换
 llm:
   base_url: "https://api.deepseek.com"
   model: "deepseek-v4-flash"

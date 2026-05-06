@@ -8,9 +8,10 @@
 
 - 支持中英文教材，自动识别章节结构
 - 基于 BGE-M3 向量检索，返回最相关的教材片段
-- DeepSeek 大模型生成回答，引用具体页码和章节
+- 大模型生成回答，引用具体页码和章节，支持数学公式渲染
 - Streamlit 对话式界面，支持多轮问答
 - 本地部署，数据不出校园
+- 一键启动：自动检测 PDF 变更、解析、打开网页端
 
 ## 快速开始
 
@@ -30,17 +31,22 @@ cd course-qa
 conda create -n course-qa python=3.10
 conda activate course-qa
 
-# 3. 安装 PyTorch (CUDA 12.4)
+# 3. 安装 PyTorch (CUDA 版本根据你的显卡选择)
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
 
 # 4. 安装项目依赖
 pip install -r requirements.txt
 
 # 5. 下载 BGE-M3 模型（约 2.2GB）
-huggingface-cli download BAAI/bge-m3 --local-dir E:/models/BGE-M3
+#    将模型下载到本地任意目录，然后在 config.yaml 中配置 model_path
+huggingface-cli download BAAI/bge-m3 --local-dir <你的模型路径>/BGE-M3
 
-# 6. 配置 API Key
-#    在 config.yaml 的 llm.api_key 字段填入 DeepSeek API Key
+# 6. 配置
+#    编辑 config.yaml：
+#    - embedding.model_path: 填入 BGE-M3 模型的实际路径
+#    - llm.base_url: 填入 LLM API 地址（兼容 OpenAI 接口的服务均可）
+#    - llm.api_key: 填入 API Key
+#    - llm.model: 填入模型名称
 ```
 
 ### 使用方法
@@ -67,17 +73,40 @@ python start.py
 |--------|------|--------|
 | `ingestion.chunk_size` | 每个文本块的字符数 | 500 |
 | `ingestion.chunk_overlap` | 文本块之间的重叠字符数 | 50 |
-| `embedding.model_path` | BGE-M3 模型路径 | E:/models/BGE-M3 |
+| `embedding.model_path` | BGE-M3 模型本地路径 | 需配置 |
+| `embedding.device` | 推理设备 | cuda |
 | `retrieval.top_k` | 检索返回的相关片段数量 | 5 |
-| `llm.model` | DeepSeek 模型名称 | deepseek-v4-flash |
+| `llm.base_url` | LLM API 地址（OpenAI 兼容） | 需配置 |
+| `llm.api_key` | API Key | 需配置 |
+| `llm.model` | 模型名称 | 需配置 |
 | `llm.temperature` | 生成回答的随机性（越低越确定） | 0.3 |
+
+本系统接入任何兼容 OpenAI 接口的 LLM 服务，只需修改 `llm` 部分的 `base_url`、`api_key`、`model` 即可。例如：
+
+```yaml
+# DeepSeek
+llm:
+  base_url: "https://api.deepseek.com"
+  model: "deepseek-v4-flash"
+
+# OpenAI
+llm:
+  base_url: "https://api.openai.com/v1"
+  model: "gpt-4o"
+
+# 本地 Ollama
+llm:
+  base_url: "http://localhost:11434/v1"
+  model: "qwen2.5"
+  api_key: "ollama"
+```
 
 ## 项目架构
 
 ```
 PDF教材 → 解析 → 分块 → BGE-M3向量化 → ChromaDB
                                               ↑
-学生提问 → BGE-M3编码 → 向量检索Top-K → Prompt组装 → DeepSeek → 回答+出处
+学生提问 → BGE-M3编码 → 向量检索Top-K → Prompt组装 → LLM → 回答+出处
 ```
 
 ```
@@ -85,12 +114,11 @@ course-qa/
 ├── start.py             # 一键启动入口（自动检测 PDF → 解析 → 启动网页端）
 ├── config.yaml          # 全局配置
 ├── ingest.py            # PDF 解析 → 分块 → 向量化 → ChromaDB
-├── rag.py               # 检索 + DeepSeek 生成
+├── rag.py               # 检索 + LLM 生成
 ├── app.py               # Streamlit 前端
 ├── requirements.txt     # Python 依赖
 ├── data/                # 教材 PDF 存放目录
-├── chroma_db/           # ChromaDB 持久化存储（自动生成）
-└── E:/models/BGE-M3/    # BGE-M3 模型（需单独下载）
+└── chroma_db/           # ChromaDB 持久化存储（自动生成）
 ```
 
 ## 技术栈
@@ -101,36 +129,32 @@ course-qa/
 | 文本分块 | RecursiveCharacterTextSplitter | 按章节切分，保留语义完整性 |
 | 向量模型 | BGE-M3 | 中英文双语，1024 维向量，本地 GPU 推理 |
 | 向量数据库 | ChromaDB | 嵌入式，零运维 |
-| 大模型 | DeepSeek v4-flash | 中文问答性价比高，OpenAI 兼容接口 |
+| 大模型 | 任意 OpenAI 兼容 API | DeepSeek / OpenAI / Ollama 等均可 |
 | 前端 | Streamlit | 对话式交互 |
 
 ## 构建过程
 
-本项目按 5 个阶段迭代构建，每阶段独立验证后提交。
+本项目分阶段迭代构建，每阶段独立验证后提交。
 
-### Phase 1: 基础设施
+### 阶段一：基础设施
 
-搭建 conda 环境、项目骨架、配置文件、Git 仓库。验证环境依赖安装成功。
+搭建 conda 环境、项目骨架、配置文件、Git 仓库。
 
-### Phase 2: PDF 解析 + 分块
+### 阶段二：PDF 解析 + 分块
 
-使用 PyMuPDF 逐页提取文本，通过正则表达式检测章节标题（支持 `第X章`、`Chapter X`、`X.X` 等格式），按章节分组后使用 RecursiveCharacterTextSplitter 切分为 500 字的文本块，每个块携带章节名和页码元数据。
+使用 PyMuPDF 逐页提取文本，通过正则表达式检测章节标题（支持 `第X章`、`Chapter X`、`X.X` 等格式），按章节分组后使用 RecursiveCharacterTextSplitter 切分为文本块，每个块携带章节名和页码元数据。
 
-### Phase 3: 向量化 + 存储
+### 阶段三：向量化 + 存储
 
-加载本地 BGE-M3 模型（RTX 4060 CUDA 加载），批量编码文本块为 1024 维向量，写入 ChromaDB 持久化存储。验证检索结果的相似度排序正确。
+加载本地 BGE-M3 模型，批量编码文本块为 1024 维向量，写入 ChromaDB 持久化存储。
 
-### Phase 4: 检索 + 生成
+### 阶段四：检索 + 生成
 
-实现 RAGPipeline 类：用户提问 → BGE-M3 编码 → ChromaDB 向量检索 Top-K → 构造带出处约束的 Prompt → DeepSeek API 生成回答。验证回答准确且引用了教材页码。
+实现 RAGPipeline：用户提问 → BGE-M3 编码 → ChromaDB 向量检索 Top-K → 构造带出处约束的 Prompt → LLM 生成回答。
 
-### Phase 5: 前端 + 收尾
+### 阶段五：前端 + 一键启动
 
-Streamlit 对话式界面：`st.chat_message` 原生对话组件、`st.expander` 折叠式引用来源卡片、侧边栏显示系统状态（课程名、chunk 数量、模型信息）、前置检查（API Key 和 ChromaDB 数据验证）。支持多轮问答，对话历史通过 `session_state` 保持。
-
-### Phase 6: 一键启动 + 自动化
-
-`start.py` 单入口脚本：自动扫描 `data/` 目录检测 PDF 文件，通过 marker 文件（`chroma_db/.ingested`）判断是否需要重新解析，增量处理后自动启动 Streamlit。更换教材只需替换 PDF 文件重新运行。
+Streamlit 对话式界面：原生对话组件、折叠式引用来源卡片、侧边栏系统状态。`start.py` 单入口脚本实现自动检测 PDF 变更并增量解析。
 
 ## 许可证
 

@@ -72,11 +72,16 @@ class RAGPipeline:
 
 要求：
 1. 引用具体页码作为出处
-2. 回答要准确，不要编造"""
+2. 回答要准确，不要编造
+3. 可以结合教材内容进行推理、举例和解释，帮助学生理解，不必局限于逐字复述教材
+4. 数学公式使用 LaTeX 格式：行内公式用 $...$，独立公式用 $$...$$"""
 
         response = self.llm.chat.completions.create(
             model=self.config["llm"]["model"],
-            messages=[{"role": "user", "content": prompt}],
+            messages=[
+                {"role": "system", "content": "你是一个专业的课程助教，擅长根据教材内容回答问题并进行讲解。回答时使用 Markdown 格式，数学公式用 LaTeX。"},
+                {"role": "user", "content": prompt},
+            ],
             temperature=self.config["llm"]["temperature"],
             max_tokens=self.config["llm"]["max_tokens"],
         )
