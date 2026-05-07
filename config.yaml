@@ -39,3 +39,8 @@ retrieval:
   top_k: 5
   use_mmr: true
   mmr_lambda: 0.5
+
+# Reranker (CrossEncoder精排，可选)
+reranker:
+  enabled: false
+  model_path: ""

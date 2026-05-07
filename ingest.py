@@ -56,33 +56,67 @@ def parse_pdf(pdf_path):
 
 
 def build_chapters(pages):
-    """Group pages into chapter-level blocks based on heading detection."""
+    """Group pages into chapter-level blocks based on heading detection.
+
+    Each chapter stores text_parts (list of (page_num, str) tuples) so that
+    downstream chunking can recover the real page range of every chunk.
+    """
     chapters = []
-    current = {"title": "前言", "start_page": 1, "text": ""}
+    # text_parts: list of (page_num, str) for the current chapter
+    current = {"title": "前言", "start_page": 1, "text_parts": []}
+    prev_page_num = None
 
     for page in pages:
+        page_num = page["page_num"]
         for line in page["text"].split("\n"):
             if is_chapter_heading(line):
-                if current["text"].strip():
-                    current["end_page"] = page["page_num"]
+                if current["text_parts"]:
+                    # Bug 3 fix: end_page = previous page, not the new chapter's page
+                    current["end_page"] = prev_page_num if prev_page_num else page_num
                     chapters.append(current)
                 current = {
                     "title": line.strip(),
-                    "start_page": page["page_num"],
-                    "text": "",
+                    "start_page": page_num,
+                    "text_parts": [],
                 }
             else:
-                current["text"] += "\n" + line
+                current["text_parts"].append((page_num, line))
+        prev_page_num = page_num
 
-    if current["text"].strip():
+    if current["text_parts"]:
         current["end_page"] = pages[-1]["page_num"] if pages else 1
         chapters.append(current)
 
     return chapters
 
 
+def _build_char_to_page(text_parts):
+    """Build a mapping from character offset to page number.
+
+    Given text_parts = [(page_num, line), ...], returns a list where index i
+    is the page number for character position i in the joined text.
+    """
+    char_to_page = []
+    for page_num, line in text_parts:
+        char_to_page.extend([page_num] * (len(line) + 1))  # +1 for '\n'
+    return char_to_page
+
+
+def _find_page_range(chunk_start, chunk_end, char_to_page):
+    """Return (page_start, page_end) for a chunk given its char offsets."""
+    if not char_to_page:
+        return (1, 1)
+    safe_start = min(chunk_start, len(char_to_page) - 1)
+    safe_end = min(chunk_end - 1, len(char_to_page) - 1)
+    return (char_to_page[safe_start], char_to_page[safe_end])
+
+
 def chunk_chapters(chapters, config):
-    """Split chapters into chunks with metadata."""
+    """Split chapters into chunks with metadata.
+
+    Bug 2 fix: each chunk's page_start/page_end reflects the actual pages
+    the chunk text spans, not just the chapter's start page.
+    """
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=config["ingestion"]["chunk_size"],
         chunk_overlap=config["ingestion"]["chunk_overlap"],
@@ -91,14 +125,26 @@ def chunk_chapters(chapters, config):
 
     all_chunks = []
     for chapter in chapters:
-        chunks = splitter.split_text(chapter["text"])
+        # Join text_parts into full text for splitting
+        full_text = "\n".join(line for _, line in chapter["text_parts"])
+        char_to_page = _build_char_to_page(chapter["text_parts"])
+
+        chunks = splitter.split_text(full_text)
+
+        # Track char offsets to map each chunk to its real page range
+        offset = 0
         for i, chunk_text in enumerate(chunks):
+            start = full_text.index(chunk_text, offset)
+            end = start + len(chunk_text)
+            page_start, page_end = _find_page_range(start, end, char_to_page)
+            offset = start + 1
+
             all_chunks.append({
                 "text": chunk_text,
                 "metadata": {
                     "chapter": chapter["title"],
-                    "page_start": chapter["start_page"],
-                    "page_end": chapter.get("end_page", chapter["start_page"]),
+                    "page_start": page_start,
+                    "page_end": page_end,
                     "chunk_index": i,
                 },
             })

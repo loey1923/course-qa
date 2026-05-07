@@ -104,20 +104,24 @@ def main():
             st.markdown(query)
         st.session_state.messages.append({"role": "user", "content": query})
 
-        # Generate response
+        # Generate response (Feature 2: streaming with history)
         with st.chat_message("assistant"):
             with st.spinner("检索教材中..."):
                 chunks = rag.retrieve(query)
 
-            with st.spinner("生成回答中..."):
-                answer = rag.generate(query, chunks)
+            # Feature 1+2: stream with conversation history (exclude current user msg)
+            placeholder = st.empty()
+            full_response = ""
+            for token in rag.generate_stream(query, chunks, history=st.session_state.messages[:-1]):
+                full_response += token
+                placeholder.markdown(full_response + "▌")
+            placeholder.markdown(full_response)
 
-            st.markdown(answer)
             render_sources(chunks)
 
         st.session_state.messages.append({
             "role": "assistant",
-            "content": answer,
+            "content": full_response,
             "chunks": chunks,
         })
 

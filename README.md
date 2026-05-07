@@ -76,6 +76,10 @@ python start.py
 | `embedding.model_path` | BGE-M3 模型本地路径 | 需配置 |
 | `embedding.device` | 推理设备 | cuda |
 | `retrieval.top_k` | 检索返回的相关片段数量 | 5 |
+| `retrieval.use_mmr` | 是否启用 MMR 多样性检索 | true |
+| `retrieval.mmr_lambda` | MMR 相关性/多样性权重（越大越偏重相关性） | 0.5 |
+| `reranker.enabled` | 是否启用 CrossEncoder 精排 | false |
+| `reranker.model_path` | CrossEncoder 模型路径（启用时需配置） | 空 |
 | `llm.base_url` | LLM API 地址（OpenAI 兼容） | 需配置 |
 | `llm.api_key` | API Key | 需配置 |
 | `llm.model` | 模型名称 | 需配置 |
@@ -155,6 +159,22 @@ course-qa/
 ### 阶段五：前端 + 一键启动
 
 Streamlit 对话式界面：原生对话组件、折叠式引用来源卡片、侧边栏系统状态。`start.py` 单入口脚本实现自动检测 PDF 变更并增量解析。
+
+### 阶段六：校验与优化
+
+对已有功能进行 bug 修复与体验增强：
+
+**Bug 修复**
+
+- **MMR 检索**：`retrieve()` 现在支持 MMR（最大边际相关性）算法。先检索 `top_k×3` 个候选，再以 `mmr_lambda` 权衡相关性与多样性，贪心选出最终结果，避免返回高度重复的片段。
+- **chunk 页码修正**：重构 `build_chapters()` 与 `chunk_chapters()`，通过字符偏移量映射追踪每段文字的真实页码，使每个 chunk 的 `page_start` / `page_end` 反映实际所在页，而非章节起始页。
+- **end_page off-by-one**：修复切换章节时 `end_page` 错误赋为新章节页码的问题，改为使用上一页页码。
+
+**新功能**
+
+- **多轮对话历史**：`generate()` 支持传入对话历史，自动将最近 3 轮（user/assistant）插入 Prompt 上下文，提升追问和指代消解能力。
+- **流式输出**：新增 `generate_stream()` 方法，前端使用 Streamlit `st.empty()` 实现逐 token 打字机效果，改善等待体验。
+- **BGE Reranker 精排**：可选启用 CrossEncoder 对检索结果二次精排，在 `config.yaml` 中配置 `reranker.enabled` 和 `reranker.model_path`。
 
 ## 许可证
 
