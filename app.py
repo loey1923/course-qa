@@ -56,9 +56,10 @@ def render_sources(chunks):
     with st.expander(f"来源 ({len(chunks)})"):
         for i, c in enumerate(chunks):
             meta = c["metadata"]
+            score_display = f"精排 {c['rerank_score']:.2f}" if "rerank_score" in c else f"相似度 {1 - c['distance']:.2f}"
             st.markdown(
                 f"**[{i+1}]** {meta['chapter']} · 第{meta['page_start']}页 · "
-                f"相似度 {1 - c['distance']:.2f}"
+                f"{score_display}"
             )
             st.caption(c["text"][:200] + ("..." if len(c["text"]) > 200 else ""))
             if i < len(chunks) - 1:
@@ -112,7 +113,8 @@ def main():
             # Feature 1+2: stream with conversation history (exclude current user msg)
             placeholder = st.empty()
             full_response = ""
-            for token in rag.generate_stream(query, chunks, history=st.session_state.messages[:-1]):
+            clean_history = [{"role": m["role"], "content": m["content"]} for m in st.session_state.messages[:-1]]
+            for token in rag.generate_stream(query, chunks, history=clean_history):
                 full_response += token
                 placeholder.markdown(full_response + "▌")
             placeholder.markdown(full_response)

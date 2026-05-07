@@ -107,7 +107,7 @@ def _find_page_range(chunk_start, chunk_end, char_to_page):
     if not char_to_page:
         return (1, 1)
     safe_start = min(chunk_start, len(char_to_page) - 1)
-    safe_end = min(chunk_end - 1, len(char_to_page) - 1)
+    safe_end = min(chunk_end, len(char_to_page) - 1)
     return (char_to_page[safe_start], char_to_page[safe_end])
 
 
@@ -134,7 +134,9 @@ def chunk_chapters(chapters, config):
         # Track char offsets to map each chunk to its real page range
         offset = 0
         for i, chunk_text in enumerate(chunks):
-            start = full_text.index(chunk_text, offset)
+            start = full_text.find(chunk_text, offset)
+            if start == -1:
+                start = offset
             end = start + len(chunk_text)
             page_start, page_end = _find_page_range(start, end, char_to_page)
             offset = start + 1
