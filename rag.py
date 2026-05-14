@@ -38,14 +38,17 @@ class RAGPipeline:
         # Feature 3: BGE Reranker (CrossEncoder)
         self.reranker = None
         reranker_cfg = config.get("reranker", {})
-        if reranker_cfg.get("enabled", False) and reranker_cfg.get("model_path"):
-            from sentence_transformers import CrossEncoder
-            print("Loading reranker model...")
-            self.reranker = CrossEncoder(
-                reranker_cfg["model_path"],
-                max_length=512,
-            )
-            print("  Reranker loaded")
+        if reranker_cfg.get("enabled", False):
+            if reranker_cfg.get("model_path"):
+                from sentence_transformers import CrossEncoder
+                print("Loading reranker model...")
+                self.reranker = CrossEncoder(
+                    reranker_cfg["model_path"],
+                    max_length=512,
+                )
+                print("  Reranker loaded")
+            else:
+                print("Warning: reranker enabled but model_path is empty, skipping")
 
     def retrieve(self, query):
         """Retrieve top-K relevant chunks, optionally with MMR diversification.

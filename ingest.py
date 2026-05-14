@@ -189,7 +189,10 @@ def store_in_chromadb(chunks, embeddings, config):
     except Exception:
         pass
 
-    collection = client.create_collection(name=collection_name)
+    collection = client.create_collection(
+        name=collection_name,
+        metadata={"hnsw:space": "cosine"},
+    )
 
     ids = [f"chunk_{i}" for i in range(len(chunks))]
     documents = [c["text"] for c in chunks]
